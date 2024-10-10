@@ -1,0 +1,11 @@
+Containers in Docker share several resources with the host system, including:
+
+1. Network Interfaces: Containers can communicate with the host and other containers using the host's network stack. They can be assigned specific IP addresses and can bind to host ports.
+
+2. File Systems: Containers can mount host directories, allowing them to read and write files directly from the host. This is useful for data persistence.
+
+3. Environment Variables: Containers can access environment variables defined in the Docker configuration, which can be used to customize their behavior without modifying the application code.
+
+4. CPU and Memory: While containers are isolated, they share the host's CPU and memory resources. Docker allows setting limits on these resources to ensure fair distribution among containers.
+
+Overall, Docker provides a lightweight way to run applications in isolated environments while still allowing necessary interactions with the host system.

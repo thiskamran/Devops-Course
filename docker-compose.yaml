@@ -1,0 +1,20 @@
+version: '3'
+services:
+  service1:
+    build: ./service1
+    ports:
+      - "8199:8199"
+    depends_on:
+      - service2
+    networks:
+      - my-network
+
+  service2:
+    build: ./service2
+    expose:
+      - "8080"
+    networks:
+      - my-network
+
+networks:
+  my-network:
