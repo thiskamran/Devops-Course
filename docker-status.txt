@@ -1,0 +1,19 @@
+$ docker container ls
+
+CONTAINER ID   IMAGE            COMMAND                  CREATED         STATUS         PORTS                     NAMES
+6a876096701c   service1-image   "python service1.py"     2 minutes ago   Up 2 minutes   0.0.0.0:63095->8199/tcp   exercise1-service1-3
+fdde0be1dba3   service1-image   "python service1.py"     2 minutes ago   Up 2 minutes   0.0.0.0:63096->8199/tcp   exercise1-service1-1
+71301f7667a0   service1-image   "python service1.py"     2 minutes ago   Up 2 minutes   0.0.0.0:63097->8199/tcp   exercise1-service1-2
+d5d677946510   nginx:latest     "/docker-entrypoint.…"   2 minutes ago   Up 2 minutes   0.0.0.0:8198->80/tcp      exercise1-nginx-1
+7bc1ca3bb7c7   service2-image   "docker-entrypoint.s…"   2 minutes ago   Up 2 minutes   0.0.0.0:63094->8080/tcp   exercise1-service2-1
+
+$ docker network ls
+
+NETWORK ID     NAME                    DRIVER    SCOPE
+1df9a391112c   bridge                  bridge    local
+b7c2d16a9858   exercise1_app-network   bridge    local
+fc54234345cf   exercise1_default       bridge    local
+e515ed5b1c79   exercise1_my-network    bridge    local
+e04a3860cbdc   host                    host      local
+92f7fb8e41fe   none                    null      local
+32eaaff30f11   server-a_default        bridge    local

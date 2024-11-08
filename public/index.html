@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Service Gateway</title>
+</head>
+<body>
+    <h1>Service Gateway</h1>
+    <button onclick="sendRequest()">REQUEST</button>
+    <button onclick="stopServices()">STOP</button>
+    <div id="response"></div>
+
+<script>
+    async function sendRequest() {
+        try {
+            const response = await fetch('/api/');  
+            if (!response.ok) {
+                throw new Error(`Request failed with status ${response.status}`);
+            }
+            const data = await response.json();
+            document.getElementById('response').innerText = JSON.stringify(data, null, 2);
+        } catch (error) {
+            document.getElementById('response').innerText = `Error: ${error.message}`;
+        }
+    }
+
+    async function stopServices() {
+        try {
+            await fetch('/api/stop', { method: 'POST' });
+            document.getElementById('response').innerText = "Services are shutting down...";
+        } catch (error) {
+            document.getElementById('response').innerText = `Error: ${error.message}`;
+        }
+    }
+</script>
+</body>
+</html>
