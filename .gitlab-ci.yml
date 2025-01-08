@@ -4,4 +4,4 @@ stages:
 simple_test:
   stage: test
   script:
-    - echo "Testing the pipeline!"
+    - echo "Testing the initial pipeline!"
