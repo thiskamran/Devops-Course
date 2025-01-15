@@ -23,4 +23,4 @@ deploy:
   script:
     - docker-compose up -d
   tags:
-    - shell
+    - shell # Changed from 'windows' to 'shell' to match runner's tag
