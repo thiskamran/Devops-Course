@@ -1,7 +1,26 @@
 stages:
+  - build
   - test
+  - deploy
 
-simple_test:
+build:
+  stage: build
+  script:
+    - docker-compose build --no-cache
+  tags:
+    - windows
+
+test:
   stage: test
   script:
-    - echo "Testing the initial pipeline!"
+    - docker-compose up -d
+    - python -m pytest tests/test_state_management.py -v
+  tags:
+    - windows
+
+deploy:
+  stage: deploy
+  script:
+    - docker-compose up -d
+  tags:
+    - windows
