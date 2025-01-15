@@ -29,11 +29,12 @@ services:
     image: nginx:latest
     ports:
       - "8198:80"
+      - "8197:8197"   # Expose the port 8197
     volumes:
     - ./nginx.conf:/etc/nginx/nginx.conf
     - ./.htpasswd:/etc/nginx/.htpasswd
     - ./public:/etc/nginx/html     # Mount the HTML directory
-    networks:
+    networks: 
       - app-network
 
 networks:
