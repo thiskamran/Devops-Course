@@ -14,7 +14,7 @@ test:
   stage: test
   script:
     - docker-compose up -d
-    - python -m pytest tests/test_state_management.py -v
+    - python -m pytest tests/test_state_management.py -v  # Run tests
   tags:
     - windows
 
