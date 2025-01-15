@@ -8,7 +8,7 @@ build:
   script:
     - docker-compose build --no-cache
   tags:
-    - windows
+    - shell  # Changed from 'windows' to 'shell' to match runner's tag
 
 test:
   stage: test
@@ -16,11 +16,11 @@ test:
     - docker-compose up -d
     - python -m pytest tests/test_state_management.py -v  # Run tests
   tags:
-    - windows
+    - shell
 
 deploy:
   stage: deploy
   script:
     - docker-compose up -d
   tags:
-    - windows
+    - shell
