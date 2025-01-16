@@ -16,7 +16,7 @@ test:
     - docker-compose up -d
     - python -m pytest tests/test_state_management.py -v  # Run tests
   tags:
-    - shell  # Changed from 'windows' to 'shell' to match runner's tag
+    - shell  
 
 deploy:
   stage: deploy
