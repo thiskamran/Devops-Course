@@ -4,7 +4,7 @@ import requests
 import time
 
 class TestStateManagement(unittest.TestCase):
-    BASE_URL = "http://localhost:8197"
+    BASE_URL = "http://nginx:8197"
     auth = ("user", "test@123")
 
     def test_state_management_feature(self):
