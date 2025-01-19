@@ -1,6 +1,7 @@
 # tests/test_state_management.py
 import unittest
 import requests
+import time
 
 class TestStateManagement(unittest.TestCase):
     BASE_URL = "http://localhost:8197"
@@ -16,9 +17,12 @@ class TestStateManagement(unittest.TestCase):
             auth=self.auth
         )
         self.assertEqual(response.status_code, 200)
+
+        time.sleep(1)  # Add small delay to ensure state propagation
         
         # Verify state changed
         response = requests.get(f"{self.BASE_URL}/state", auth=self.auth)
+        print(f"Response content: '{response.text}'")  # Debug print
         self.assertEqual(response.text, "RUNNING")
 
 if __name__ == '__main__':

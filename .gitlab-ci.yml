@@ -14,7 +14,7 @@ test:
   stage: test
   script:
     - docker-compose up -d
-    - python -m pytest tests/test_state_management.py -v  # Run tests
+    - docker exec devops-project-service1-1 python -m pytest tests/test_state_management.py -v  # Run tests for service1 in docker container
   tags:
     - shell  
 

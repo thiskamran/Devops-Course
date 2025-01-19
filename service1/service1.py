@@ -17,10 +17,13 @@ app = flask.Flask(__name__)
 
 class ServiceState:
     def __init__(self):
+        self.current_state = "INIT"
         self.is_shutting_down = False
         self.active_requests = 0
         self.shutdown_time = None
         self.lock = threading.Lock()
+        self.state_file = "/tmp/service_state"  # Shared state file
+
 
     def start_request(self):
         with self.lock:
@@ -47,7 +50,23 @@ class ServiceState:
                 "shutdown_time": self.shutdown_time,
                 "uptime": get_uptime() if not self.shutdown_time else self.shutdown_time - psutil.boot_time()
             }
+        
+    def change_state(self, new_state):
+        """Change the current state"""
+        with self.lock:
+            print(f"Attempting to change state to: {new_state}")  # Debug
+            if new_state in ["INIT", "RUNNING", "PAUSED", "SHUTDOWN"]:
+                self.current_state = new_state
+                print(f"State changed to: {self.current_state}")  # Debug
+                return True
+            return False
 
+    def get_current_state(self):
+        """Get the current state"""
+        with self.lock:
+            print(f"Current state is: {self.current_state}")  # Debug
+            return self.current_state
+    
 state = ServiceState()
 
 def get_ip_address():
@@ -181,6 +200,22 @@ def stop_services():
         }
     }), 202
 
+@app.route('/state', methods=['GET'])
+def get_state():
+    current_state = state.get_current_state()
+    return current_state
+
+@app.route('/state', methods=['PUT'])
+def update_state():
+    new_state = flask.request.get_data().decode('utf-8')
+    success = state.change_state(new_state)
+    current = state.get_current_state()  # Get current state after change
+    if success:
+        return jsonify({
+            "state": current,
+            "message": "State updated"
+        }), 200
+    return jsonify({"error": "Invalid state"}), 400
 # Register cleanup function
 @atexit.register
 def cleanup():
