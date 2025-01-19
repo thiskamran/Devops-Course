@@ -16,7 +16,7 @@ test:
     - docker-compose up -d
     - docker ps  # Check container status
     - sleep 10  # Give containers time to initialize
-    - docker exec exercise1-service1-1 python -m pytest ./../tests/test_state_management.py -v  # Run tests for service1 container
+    - docker exec exercise1-service1-1 python -m pytest ./../tests/test_state_management.py -v  
   tags:
     - shell  
 
