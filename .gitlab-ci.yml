@@ -13,7 +13,6 @@ build:
 test:
   stage: test
   script:
-    - ls -la tests/  # Check if test file exists
     - docker-compose up -d
     - docker exec devops-project-service1-1 python -m pytest tests/test_state_management.py -v  # Run tests for service1 in docker container
   tags:
