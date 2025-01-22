@@ -8,7 +8,7 @@ logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 class TestStateManagement(unittest.TestCase):
-    BASE_URL = "http://localhost:8197/"
+    BASE_URL = "http://nginx:8197/"
     auth = ("user", "test@123")
 
     
