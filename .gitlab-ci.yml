@@ -13,7 +13,8 @@ build:
 test:
   stage: test
   script:
-    - docker-compose down
+    - docker-compose down --remove-orphans -v
+    - docker rm -f $(docker ps -aq)  # Force remove all containers
     - sleep 10
     - docker-compose up -d
     - docker ps  # Check container status
