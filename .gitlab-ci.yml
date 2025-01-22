@@ -13,10 +13,12 @@ build:
 test:
   stage: test
   script:
+    - docker-compose down
+    - sleep 10
     - docker-compose up -d
     - docker ps  # Check container status
     - sleep 10  # Give containers time to initialize
-    - docker exec devops-project-service1-1 python -m pytest ./../tests/test_state_management.py -v  
+    - python3 -m pytest tests/test_state_management.py -v  
   tags:
     - shell  
 

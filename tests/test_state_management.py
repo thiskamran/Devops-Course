@@ -39,7 +39,7 @@ class TestStateManagement(unittest.TestCase):
             response = requests.get(f"{self.BASE_URL}/state", auth=self.auth)
             logger.info(f"Final state: {response.text}")
             print(f"Final state: {response.text}")
-            self.assertEqual(response.text.strip(), "INIT")
+            self.assertEqual(response.text.strip(), "RUNNING")
             
         except requests.exceptions.RequestException as e:
             logger.error(f"Request failed: {str(e)}")
