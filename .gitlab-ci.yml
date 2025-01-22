@@ -13,14 +13,14 @@ build:
 test:
  stage: test
  script:
-   - docker stop $(docker ps -aq) || true  # Stop all containers, ignore errors
-   - docker-compose down --remove-orphans -v --rmi all   - sleep 10
+   - if (docker ps -aq) { docker stop $(docker ps -aq) }
+   - docker-compose down --remove-orphans -v --rmi all
    - docker-compose up -d
    - docker ps
    - sleep 10
    - python -m pytest tests/test_state_management.py -v
  after_script:
-   - docker stop $(docker ps -aq) || true
+   - if (docker ps -aq) { docker stop $(docker ps -aq) }
    - docker-compose down --remove-orphans -v --rmi all
  tags:
    - shell
