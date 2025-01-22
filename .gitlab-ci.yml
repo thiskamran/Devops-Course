@@ -13,8 +13,7 @@ build:
 test:
   stage: test
   script:
-    - docker-compose down --remove-orphans -v
-    - docker ps -q | xargs -r docker rm -f  # Only remove if containers exist
+    - docker-compose down --remove-orphans -v --rmi all  # Remove all containers, networks, and volumes
     - sleep 10
     - docker-compose up -d
     - docker ps  # Check container status
