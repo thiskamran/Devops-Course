@@ -1,5 +1,5 @@
 import flask
-from flask import jsonify, make_response
+from flask import jsonify, make_response, request
 import requests
 import socket
 import psutil
@@ -12,19 +12,90 @@ import threading
 import docker
 from werkzeug.serving import is_running_from_reloader
 import atexit
+from datetime import datetime
+import logging
+
+
+# Set up logging
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
 
 app = flask.Flask(__name__)
+
+# class ServiceState:
+#     def __init__(self):
+#         self.current_state = "INIT"
+#         self.is_shutting_down = False
+#         self.active_requests = 0
+#         self.shutdown_time = None
+#         self.lock = threading.Lock()
+#         self.state_file = "/tmp/service_state"  # Shared state file
+
+#     def start_request(self):
+#         with self.lock:
+#             if not self.is_shutting_down:
+#                 self.active_requests += 1
+#                 return True
+#             return False
+
+#     def end_request(self):
+#         with self.lock:
+#             if self.active_requests > 0:
+#                 self.active_requests -= 1
+
+#     def start_shutdown(self):
+#         with self.lock:
+#             self.is_shutting_down = True
+#             self.shutdown_time = time.time()
+
+#     def get_status(self):
+#         with self.lock:
+#             return {
+#                 "is_shutting_down": self.is_shutting_down,
+#                 "active_requests": self.active_requests,
+#                 "shutdown_time": self.shutdown_time,
+#                 "uptime": get_uptime() if not self.shutdown_time else self.shutdown_time - psutil.boot_time()
+#             }
+        
+#     def change_state(self, new_state):
+#         """Change the current state"""
+#         with self.lock:
+#             print(f"Attempting to change state to: {new_state}")  # Debug
+#             if new_state in ["INIT", "RUNNING", "PAUSED", "SHUTDOWN"]:
+#                 self.current_state = new_state
+#                 print(f"State changed to: {self.current_state}")  # Debug
+#                 return True
+#             return False
+
+#     def get_current_state(self):
+#         """Get the current state"""
+#         with self.lock:
+#             print(f"Current state is: {self.current_state}")  # Debug
+#             return self.current_state
 
 class ServiceState:
     def __init__(self):
         self.current_state = "INIT"
+        logger.info(f"ServiceState initialized with state: {self.current_state}")
+        self.lock = threading.Lock()  # Initialize the lock here
         self.is_shutting_down = False
         self.active_requests = 0
         self.shutdown_time = None
-        self.lock = threading.Lock()
         self.state_file = "/tmp/service_state"  # Shared state file
 
+    def change_state(self, new_state):
+        logger.info(f"Attempting to change state to: {new_state}")
+        if new_state in ["INIT", "RUNNING", "PAUSED", "SHUTDOWN"]:
+            self.current_state = new_state
+            logger.info(f"State changed to: {new_state}")
+            return True
+        logger.warning(f"Invalid state requested: {new_state}")
+        return False
 
+    def get_current_state(self):
+        logger.info(f"Getting current state: {self.current_state}")
+        return self.current_state
+    
     def start_request(self):
         with self.lock:
             if not self.is_shutting_down:
@@ -51,22 +122,7 @@ class ServiceState:
                 "uptime": get_uptime() if not self.shutdown_time else self.shutdown_time - psutil.boot_time()
             }
         
-    def change_state(self, new_state):
-        """Change the current state"""
-        with self.lock:
-            print(f"Attempting to change state to: {new_state}")  # Debug
-            if new_state in ["INIT", "RUNNING", "PAUSED", "SHUTDOWN"]:
-                self.current_state = new_state
-                print(f"State changed to: {self.current_state}")  # Debug
-                return True
-            return False
 
-    def get_current_state(self):
-        """Get the current state"""
-        with self.lock:
-            print(f"Current state is: {self.current_state}")  # Debug
-            return self.current_state
-    
 state = ServiceState()
 
 def get_ip_address():
@@ -119,6 +175,11 @@ def after_request(response):
         thread.start()
     return response
 
+@app.before_request
+def log_request_info():
+    app.logger.info(f"Request from {request.remote_addr} to {request.path}")
+    app.logger.info(f"Handled by {socket.gethostname()}")
+    app.logger.info(f"Request headers: {dict(request.headers)}")
 @app.route('/')
 def get_info():
     service1_info = {
@@ -200,22 +261,35 @@ def stop_services():
         }
     }), 202
 
-@app.route('/state', methods=['GET'])
-def get_state():
-    current_state = state.get_current_state()
-    return current_state
+@app.route('/state', methods=['PUT', 'GET'])
+def handle_state():
+    try:
+        if request.method == 'GET':
+            logger.info("Handling GET /state request")
+            current_state = state.get_current_state()
+            logger.info(f"Returning current state: {current_state}")
+            return current_state, 200, {'Content-Type': 'text/plain'}
+            
+        elif request.method == 'PUT':
+            logger.info("Handling PUT /state request")
+            logger.debug(f"Request headers: {dict(request.headers)}")
+            
+            new_state = request.get_data().decode('utf-8').strip()
+            logger.info(f"Requested new state: {new_state}")
+            
+            if state.change_state(new_state):
+                current_state = state.get_current_state()
+                logger.info(f"State successfully updated to: {current_state}")
+                return current_state, 200, {'Content-Type': 'text/plain'}
+            else:
+                logger.warning("Invalid state change request")
+                return "Invalid state", 400
+                
+    except Exception as e:
+        logger.error(f"Error in handle_state: {str(e)}", exc_info=True)
+        return str(e), 500
 
-@app.route('/state', methods=['PUT'])
-def update_state():
-    new_state = flask.request.get_data().decode('utf-8')
-    success = state.change_state(new_state)
-    current = state.get_current_state()  # Get current state after change
-    if success:
-        return jsonify({
-            "state": current,
-            "message": "State updated"
-        }), 200
-    return jsonify({"error": "Invalid state"}), 400
+
 # Register cleanup function
 @atexit.register
 def cleanup():
@@ -223,4 +297,5 @@ def cleanup():
     # Additional cleanup tasks can be added here
 
 if __name__ == '__main__':
+    logger.info("Starting Flask application")
     app.run(host='0.0.0.0', port=8199, threaded=True)
