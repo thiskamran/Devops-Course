@@ -11,16 +11,19 @@ build:
     - shell  # Changed from 'windows' to 'shell' to match runner's tag
 
 test:
-  stage: test
-  script:
-    - docker-compose down --remove-orphans -v --rmi all  # Remove all containers, networks, and volumes
-    - sleep 10
-    - docker-compose up -d
-    - docker ps  # Check container status
-    - sleep 10  # Give containers time to initialize
-    - python3 -m pytest tests/test_state_management.py -v  
-  tags:
-    - shell  
+ stage: test
+ script:
+   - docker stop $(docker ps -aq) || true  # Stop all containers, ignore errors
+   - docker-compose down --remove-orphans -v --rmi all   - sleep 10
+   - docker-compose up -d
+   - docker ps
+   - sleep 10
+   - python -m pytest tests/test_state_management.py -v
+ after_script:
+   - docker stop $(docker ps -aq) || true
+   - docker-compose down --remove-orphans -v --rmi all
+ tags:
+   - shell
 
 deploy:
   stage: deploy
