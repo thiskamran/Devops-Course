@@ -82,6 +82,8 @@ class ServiceState:
         self.active_requests = 0
         self.shutdown_time = None
         self.state_file = "/tmp/service_state"  # Shared state file
+        self.state_transitions = []  # Initialize list
+        logger.info(f"ServiceState initialized with state: {self.current_state}")
         
     def change_state(self, new_state):
         with self.lock:
@@ -96,6 +98,9 @@ class ServiceState:
             old_state = self.current_state
             self.current_state = new_state
             logger.info(f"State changed to: {new_state}")
+
+            # Log the state transition
+            self._log_transition(old_state, new_state)
             return True
         logger.warning(f"Invalid state requested: {new_state}")
         return False
@@ -135,6 +140,15 @@ class ServiceState:
             if self.current_state == "PAUSED":
                 return False
             return self.current_state == "RUNNING" and not self.is_shutting_down 
+    
+    def _log_transition(self, old_state, new_state):
+        timestamp = datetime.utcnow().strftime('%Y-%m-%dT%H.%M:%S.%f')[:-3] + 'Z'
+        transition = f"{timestamp}: {old_state}->{new_state}"
+        self.state_transitions.append(transition)
+        logger.info(f"State transition: {transition}")
+
+    def get_run_log(self):
+        return "\n".join(self.state_transitions)
 
 state = ServiceState()
 
@@ -322,6 +336,10 @@ def handle_state():
         logger.error(f"Error in handle_state: {str(e)}", exc_info=True)
         return str(e), 500
 
+@app.route('/run-log', methods=['GET'])
+def get_run_log():
+    logger.info("Handling GET /run-log request")
+    return state.get_run_log(), 200, {'Content-Type': 'text/plain'}
 
 # Register cleanup function
 @atexit.register

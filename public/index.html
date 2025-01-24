@@ -21,8 +21,10 @@
     </select>
     <button onclick="changeState()">CHANGE STATE</button>
     <button onclick="checkCurrentState()">CHECK CURRENT STATE</button>
+    <button onclick="getRunLogs()">GET RUN LOGS</button>
 
     <div id="response"></div>
+    <div id="logs-container" style="white-space: pre-wrap; margin-top: 20px; border: 1px solid #ccc; padding: 10px; background-color: #f9f9f9; font-family: monospace;"></div>
 
 <script>
     async function sendRequest() {
@@ -30,8 +32,8 @@
             const response = await fetch('/api/');  
             if (!response.ok) {
                 // Try to parse the error response
-            const errorData = await response.json();
-            throw new Error(errorData.message || `Request failed with status ${response.status}`);
+                const errorData = await response.json();
+                throw new Error(errorData.message || `Request failed with status ${response.status}`);
             }
             const data = await response.json();
             document.getElementById('response').innerText = JSON.stringify(data, null, 2);
@@ -81,6 +83,20 @@
             document.getElementById('response').innerText = `Error: ${error.message}`;
         }
     }
+
+    async function getRunLogs() {
+        try {
+            const response = await fetch('/run-log');
+            if (!response.ok) {
+                throw new Error(`Failed to fetch run logs: ${response.statusText}`);
+            }
+            const logs = await response.text();
+            document.getElementById('logs-container').innerText = logs;
+        } catch (error) {
+            document.getElementById('logs-container').innerText = `Error: ${error.message}`;
+        }
+    }
+
 </script>
 </body>
 </html>
