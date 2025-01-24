@@ -7,8 +7,21 @@
 </head>
 <body>
     <h1>Service Gateway</h1>
+
     <button onclick="sendRequest()">REQUEST</button>
     <button onclick="stopServices()">STOP</button>
+    <br><br>
+
+    <label for="state-select">Change State:</label>
+    <select id="state-select">
+        <option value="INIT">INIT</option>
+        <option value="RUNNING">RUNNING</option>
+        <option value="PAUSED">PAUSED</option>
+        <option value="SHUTDOWN">SHUTDOWN</option>
+    </select>
+    <button onclick="changeState()">CHANGE STATE</button>
+    <button onclick="checkCurrentState()">CHECK CURRENT STATE</button>
+
     <div id="response"></div>
 
 <script>
@@ -16,7 +29,9 @@
         try {
             const response = await fetch('/api/');  
             if (!response.ok) {
-                throw new Error(`Request failed with status ${response.status}`);
+                // Try to parse the error response
+            const errorData = await response.json();
+            throw new Error(errorData.message || `Request failed with status ${response.status}`);
             }
             const data = await response.json();
             document.getElementById('response').innerText = JSON.stringify(data, null, 2);
@@ -29,6 +44,39 @@
         try {
             await fetch('/api/stop', { method: 'POST' });
             document.getElementById('response').innerText = "Services are shutting down...";
+        } catch (error) {
+            document.getElementById('response').innerText = `Error: ${error.message}`;
+        }
+    }
+
+    async function changeState() {
+        const state = document.getElementById('state-select').value;
+        try {
+            const response = await fetch('/state', {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'text/plain'
+                },
+                body: state
+            });
+            if (!response.ok) {
+                throw new Error(`Failed to change state: ${response.statusText}`);
+            }
+            const updatedState = await response.text();
+            document.getElementById('response').innerText = `State changed to: ${updatedState}`;
+        } catch (error) {
+            document.getElementById('response').innerText = `Error: ${error.message}`;
+        }
+    }
+
+    async function checkCurrentState() {
+        try {
+            const response = await fetch('/state', { method: 'GET' });
+            if (!response.ok) {
+                throw new Error(`Failed to fetch current state: ${response.statusText}`);
+            }
+            const currentState = await response.text();
+            document.getElementById('response').innerText = `Current state: ${currentState}`;
         } catch (error) {
             document.getElementById('response').innerText = `Error: ${error.message}`;
         }

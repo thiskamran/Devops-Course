@@ -82,10 +82,18 @@ class ServiceState:
         self.active_requests = 0
         self.shutdown_time = None
         self.state_file = "/tmp/service_state"  # Shared state file
-
+        
     def change_state(self, new_state):
-        logger.info(f"Attempting to change state to: {new_state}")
-        if new_state in ["INIT", "RUNNING", "PAUSED", "SHUTDOWN"]:
+        with self.lock:
+            if new_state not in ["INIT", "RUNNING", "PAUSED", "SHUTDOWN"]:
+                logger.warning(f"Invalid state requested: {new_state}")
+                return False
+                
+            # Don't log if state isn't changing
+            if new_state == self.current_state:
+                return True
+                
+            old_state = self.current_state
             self.current_state = new_state
             logger.info(f"State changed to: {new_state}")
             return True
@@ -121,7 +129,12 @@ class ServiceState:
                 "shutdown_time": self.shutdown_time,
                 "uptime": get_uptime() if not self.shutdown_time else self.shutdown_time - psutil.boot_time()
             }
-        
+
+    def can_process_request(self):
+        with self.lock:
+            if self.current_state == "PAUSED":
+                return False
+            return self.current_state == "RUNNING" and not self.is_shutting_down 
 
 state = ServiceState()
 
@@ -164,7 +177,24 @@ def before_request():
             "message": "Please try again later or check other available instances"
         }
         return make_response(jsonify(response), 503)
-
+    
+@app.before_request
+def check_state():
+    # Exclude state management endpoints
+    if request.path in ['/state', '/run-log']:
+        return
+        
+    if not state.can_process_request():
+        if state.current_state == "PAUSED":
+            return make_response(jsonify({
+                "error": "Service is paused",
+                "message": "The service is temporarily paused and cannot handle requests."
+            }), 503)
+        return make_response(jsonify({
+            "error": "Service unavailable",
+            "message": "The service is unavailable. Please try again later."
+        }), 503)
+    
 @app.after_request
 def after_request(response):
     """Start a new thread to handle the delay after response is sent"""
@@ -180,6 +210,9 @@ def log_request_info():
     app.logger.info(f"Request from {request.remote_addr} to {request.path}")
     app.logger.info(f"Handled by {socket.gethostname()}")
     app.logger.info(f"Request headers: {dict(request.headers)}")
+
+
+# Endpoints for the service
 @app.route('/')
 def get_info():
     service1_info = {
