@@ -58,7 +58,6 @@ class TestStateManagement(unittest.TestCase):
             logger.error(f"Request failed: {str(e)}")
             raise
 
-   
     def test_request_handling_in_paused_state(self):
         """Test that requests are blocked in PAUSED state"""
         # Set RUNNING first
@@ -93,5 +92,23 @@ class TestStateManagement(unittest.TestCase):
         # Verify system is in PAUSED state
         response = self.get_state()
         self.assertEqual(response.text.strip(), "PAUSED")
+
+    def test_run_log_format(self):
+        """Test run-log endpoint returns correct format"""
+        self.put_state("RUNNING")
+        time.sleep(1)
+        self.put_state("PAUSED")
+        time.sleep(1)
+        
+        response = requests.get(f"{self.BASE_URL}/run-log", auth=self.auth)
+        self.assertEqual(response.status_code, 200)
+        
+        # Check format of each line
+        lines = response.text.strip().split('\n')
+        for line in lines:
+            # Format: 2025-01-24T14.30:52.940Z: RUNNING->RUNNING
+            self.assertRegex(line, 
+                r'\d{4}-\d{2}-\d{2}T\d{2}\.\d{2}:\d{2}\.\d{3}Z: [A-Z]+\->[A-Z]+')
+
 if __name__ == '__main__':
     unittest.main()
