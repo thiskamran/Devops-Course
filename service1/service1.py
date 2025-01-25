@@ -21,58 +21,6 @@ logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 app = flask.Flask(__name__)
-
-# class ServiceState:
-#     def __init__(self):
-#         self.current_state = "INIT"
-#         self.is_shutting_down = False
-#         self.active_requests = 0
-#         self.shutdown_time = None
-#         self.lock = threading.Lock()
-#         self.state_file = "/tmp/service_state"  # Shared state file
-
-#     def start_request(self):
-#         with self.lock:
-#             if not self.is_shutting_down:
-#                 self.active_requests += 1
-#                 return True
-#             return False
-
-#     def end_request(self):
-#         with self.lock:
-#             if self.active_requests > 0:
-#                 self.active_requests -= 1
-
-#     def start_shutdown(self):
-#         with self.lock:
-#             self.is_shutting_down = True
-#             self.shutdown_time = time.time()
-
-#     def get_status(self):
-#         with self.lock:
-#             return {
-#                 "is_shutting_down": self.is_shutting_down,
-#                 "active_requests": self.active_requests,
-#                 "shutdown_time": self.shutdown_time,
-#                 "uptime": get_uptime() if not self.shutdown_time else self.shutdown_time - psutil.boot_time()
-#             }
-        
-#     def change_state(self, new_state):
-#         """Change the current state"""
-#         with self.lock:
-#             print(f"Attempting to change state to: {new_state}")  # Debug
-#             if new_state in ["INIT", "RUNNING", "PAUSED", "SHUTDOWN"]:
-#                 self.current_state = new_state
-#                 print(f"State changed to: {self.current_state}")  # Debug
-#                 return True
-#             return False
-
-#     def get_current_state(self):
-#         """Get the current state"""
-#         with self.lock:
-#             print(f"Current state is: {self.current_state}")  # Debug
-#             return self.current_state
-
 class ServiceState:
     def __init__(self):
         self.current_state = "INIT"
@@ -84,27 +32,33 @@ class ServiceState:
         self.state_file = "/tmp/service_state"  # Shared state file
         self.state_transitions = []  # Initialize list
         logger.info(f"ServiceState initialized with state: {self.current_state}")
+        self.auth_required = False
         
-    def change_state(self, new_state):
+    def change_state(self, new_state, auth_provided=False):
         with self.lock:
+            # Validate state
             if new_state not in ["INIT", "RUNNING", "PAUSED", "SHUTDOWN"]:
-                logger.warning(f"Invalid state requested: {new_state}")
-                return False
-                
-            # Don't log if state isn't changing
+                return False, "Invalid state"
+
+            # Check auth requirements
+            if self.auth_required and not auth_provided:
+                return False, "Authentication required"
+
+            # Skip if no change
             if new_state == self.current_state:
-                return True
-                
+                return True, "State unchanged"
+
             old_state = self.current_state
             self.current_state = new_state
-            logger.info(f"State changed to: {new_state}")
 
-            # Log the state transition
+            # Set auth requirement if transitioning to INIT
+            if new_state == "INIT":
+                self.auth_required = True
+                self.reset_state()
+
             self._log_transition(old_state, new_state)
-            return True
-        logger.warning(f"Invalid state requested: {new_state}")
-        return False
-
+            return True, "State changed"
+    
     def get_current_state(self):
         logger.info(f"Getting current state: {self.current_state}")
         return self.current_state
@@ -149,6 +103,20 @@ class ServiceState:
 
     def get_run_log(self):
         return "\n".join(self.state_transitions)
+
+    def reset_state(self):
+        """Reset everything except logs"""
+        self.is_shutting_down = False
+        self.active_requests = 0
+        self.shutdown_time = None
+
+    def auth_success(self):
+        """Call after successful authentication"""
+        self.auth_required = False
+
+    def needs_auth(self):
+        return self.auth_required
+    
 
 state = ServiceState()
 
@@ -227,7 +195,7 @@ def log_request_info():
 
 
 # Endpoints for the service
-@app.route('/')
+@app.route('/request', methods=['GET'])
 def get_info():
     service1_info = {
         "Service1": {
@@ -247,7 +215,7 @@ def get_info():
         service2_info = {"Service2": {"Error": str(e)}}
 
     combined_info = {**service1_info, **service2_info}
-    return jsonify(combined_info)
+    return str(combined_info), 200, {'Content-Type': 'text/plain'}
 
 @app.route('/api/', methods=['GET'])
 def api_response():
@@ -324,13 +292,17 @@ def handle_state():
             new_state = request.get_data().decode('utf-8').strip()
             logger.info(f"Requested new state: {new_state}")
             
-            if state.change_state(new_state):
-                current_state = state.get_current_state()
-                logger.info(f"State successfully updated to: {current_state}")
-                return current_state, 200, {'Content-Type': 'text/plain'}
+            auth = request.authorization
+            auth_provided = auth and auth.username == 'user' and auth.password == 'test@123'
+
+            success, message = state.change_state(new_state, auth_provided)
+        
+            if success:
+                if auth_provided:
+                    state.auth_success()
+                return state.get_current_state(), 200, {'Content-Type': 'text/plain'}
             else:
-                logger.warning("Invalid state change request")
-                return "Invalid state", 400
+                return message, 401 if message == "Authentication required" else 400
                 
     except Exception as e:
         logger.error(f"Error in handle_state: {str(e)}", exc_info=True)

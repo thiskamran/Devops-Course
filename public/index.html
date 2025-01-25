@@ -1,46 +1,42 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Service Gateway</title>
 </head>
 <body>
     <h1>Service Gateway</h1>
-
-    <button onclick="sendRequest()">REQUEST</button>
-    <button onclick="stopServices()">STOP</button>
-    <br><br>
-
-    <label for="state-select">Change State:</label>
-    <select id="state-select">
-        <option value="INIT">INIT</option>
-        <option value="RUNNING">RUNNING</option>
-        <option value="PAUSED">PAUSED</option>
-        <option value="SHUTDOWN">SHUTDOWN</option>
-    </select>
-    <button onclick="changeState()">CHANGE STATE</button>
-    <button onclick="checkCurrentState()">CHECK CURRENT STATE</button>
-    <button onclick="getRunLogs()">GET RUN LOGS</button>
+    <div id="controls">
+        <button onclick="sendRequest()">REQUEST</button>
+        <button onclick="stopServices()">STOP</button>
+        <br><br>
+        <select id="state-select">
+            <option value="INIT">INIT</option>
+            <option value="RUNNING">RUNNING</option>
+            <option value="PAUSED">PAUSED</option>
+            <option value="SHUTDOWN">SHUTDOWN</option>
+        </select>
+        <button onclick="changeState()">CHANGE STATE</button>
+        <button onclick="checkCurrentState()">CHECK STATE</button>
+        <button onclick="getRunLogs()">GET LOGS</button>
+    </div>
 
     <div id="response"></div>
-    <div id="logs-container" style="white-space: pre-wrap; margin-top: 20px; border: 1px solid #ccc; padding: 10px; background-color: #f9f9f9; font-family: monospace;"></div>
+    <div id="logs-container" style="white-space: pre-wrap; margin-top: 20px; border: 1px solid #ccc; padding: 10px;"></div>
 
-<script>
-    async function sendRequest() {
-        try {
-            const response = await fetch('/api/');  
-            if (!response.ok) {
-                // Try to parse the error response
-                const errorData = await response.json();
-                throw new Error(errorData.message || `Request failed with status ${response.status}`);
+    <script>
+        // Check auth on load
+        if (!sessionStorage.getItem('credentials')) {
+            window.location.href = '/login.html';
+        }
+
+        // Set initial state on page load
+        window.onload = async function() {
+            const response = await fetch('/state');
+            if (response.ok) {
+                const currentState = await response.text();
+                document.getElementById('state-select').value = currentState;
             }
-            const data = await response.json();
-            document.getElementById('response').innerText = JSON.stringify(data, null, 2);
-        } catch (error) {
-            document.getElementById('response').innerText = `Error: ${error.message}`;
-        }   
-    }
+        };
 
     async function stopServices() {
         try {
@@ -51,52 +47,75 @@
         }
     }
 
-    async function changeState() {
-        const state = document.getElementById('state-select').value;
-        try {
-            const response = await fetch('/state', {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'text/plain'
-                },
-                body: state
-            });
-            if (!response.ok) {
-                throw new Error(`Failed to change state: ${response.statusText}`);
-            }
-            const updatedState = await response.text();
-            document.getElementById('response').innerText = `State changed to: ${updatedState}`;
-        } catch (error) {
-            document.getElementById('response').innerText = `Error: ${error.message}`;
+        function getAuthHeader() {
+            return { 'Authorization': `Basic ${sessionStorage.getItem('credentials')}` };
         }
-    }
 
-    async function checkCurrentState() {
-        try {
-            const response = await fetch('/state', { method: 'GET' });
-            if (!response.ok) {
-                throw new Error(`Failed to fetch current state: ${response.statusText}`);
+        async function changeState() {
+            const state = document.getElementById('state-select').value;
+            try {
+                const response = await fetch('/state', {
+                    method: 'PUT',
+                    headers: {
+                        ...getAuthHeader(),
+                        'Content-Type': 'text/plain'
+                    },
+                    body: state
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Failed to change state: ${response.statusText}`);
+                }
+
+                const newState = await response.text();
+                document.getElementById('response').innerText = `State changed to: ${newState}`;
+                document.getElementById('state-select').value = newState;
+
+                if (state === 'INIT') {
+                    sessionStorage.removeItem('credentials');
+                    window.location.href = '/login.html';
+                }
+            } catch (error) {
+                document.getElementById('response').innerText = `Error: ${error.message}`;
             }
-            const currentState = await response.text();
-            document.getElementById('response').innerText = `Current state: ${currentState}`;
-        } catch (error) {
-            document.getElementById('response').innerText = `Error: ${error.message}`;
         }
-    }
 
-    async function getRunLogs() {
-        try {
-            const response = await fetch('/run-log');
-            if (!response.ok) {
-                throw new Error(`Failed to fetch run logs: ${response.statusText}`);
+        async function sendRequest() {
+            try {
+                const response = await fetch('/request', {
+                    headers: getAuthHeader()
+                });
+                const data = await response.text();
+                document.getElementById('response').innerText = data;
+            } catch (error) {
+                document.getElementById('response').innerText = `Error: ${error.message}`;
             }
-            const logs = await response.text();
-            document.getElementById('logs-container').innerText = logs;
-        } catch (error) {
-            document.getElementById('logs-container').innerText = `Error: ${error.message}`;
         }
-    }
 
-</script>
+        async function checkCurrentState() {
+            try {
+                const response = await fetch('/state');
+                if (response.ok) {
+                    const currentState = await response.text();
+                    document.getElementById('response').innerText = `Current state: ${currentState}`;
+                    document.getElementById('state-select').value = currentState;
+                }
+            } catch (error) {
+                document.getElementById('response').innerText = `Error: ${error.message}`;
+            }
+        }
+
+        async function getRunLogs() {
+            try {
+                const response = await fetch('/run-log');
+                if (response.ok) {
+                    const logs = await response.text();
+                    document.getElementById('logs-container').innerText = logs;
+                }
+            } catch (error) {
+                document.getElementById('logs-container').innerText = `Error: ${error.message}`;
+            }
+        }
+    </script>
 </body>
 </html>
