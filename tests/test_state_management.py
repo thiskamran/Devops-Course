@@ -110,5 +110,17 @@ class TestStateManagement(unittest.TestCase):
             self.assertRegex(line, 
                 r'\d{4}-\d{2}-\d{2}T\d{2}\.\d{2}:\d{2}\.\d{3}Z: [A-Z]+\->[A-Z]+')
 
+    def test_request_endpoint(self):
+        """Test GET /request endpoint returns system info as plain text"""
+        self.put_state("RUNNING")
+        
+        response = requests.get(f"{self.BASE_URL}/request", auth=self.auth)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.headers['Content-Type'], 'text/plain')
+        
+        # Verify data format
+        self.assertIn("Disk Space", response.text)
+        self.assertIn("IP", response.text)
+        self.assertIn("Service2", response.text)
 if __name__ == '__main__':
     unittest.main()
