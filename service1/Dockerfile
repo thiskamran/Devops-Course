@@ -4,7 +4,16 @@ FROM python:3.9-slim
 
 WORKDIR /app
 
+# Install Docker Compose
+RUN apt-get update && \
+    apt-get install -y curl && \
+    curl -L "https://github.com/docker/compose/releases/download/v2.24.0/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose && \
+    chmod +x /usr/local/bin/docker-compose && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+    
 COPY . /app
+
 
 # Install any needed packages specified in requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt

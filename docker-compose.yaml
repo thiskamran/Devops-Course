@@ -14,6 +14,8 @@ services:
     working_dir: /app/service1  # Set the working directory
     deploy:
       replicas: 3  # Create 3 instances of service1
+    stop_grace_period: 10s  # Give containers time to shutdown gracefully
+    stop_signal: SIGTERM    # Use SIGTERM for shutdown
     networks:
       - app-network
 
@@ -36,6 +38,8 @@ services:
     - ./nginx.conf:/etc/nginx/nginx.conf
     - ./.htpasswd:/etc/nginx/.htpasswd
     - ./public:/etc/nginx/html     # Mount the HTML directory
+    - ./start.sh:/start.sh
+    command: ["sh", "/start.sh"]
     networks: 
       - app-network
 

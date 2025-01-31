@@ -33,6 +33,10 @@ class ServiceState:
         self.state_transitions = []  # Initialize list
         logger.info(f"ServiceState initialized with state: {self.current_state}")
         self.auth_required = False
+
+        # Add signal handlers for graceful shutdown
+        signal.signal(signal.SIGTERM, self._handle_sigterm)
+        signal.signal(signal.SIGINT, self._handle_sigterm)
         
     def change_state(self, new_state, auth_provided=False):
         with self.lock:
@@ -55,6 +59,10 @@ class ServiceState:
             if new_state == "INIT":
                 self.auth_required = True
                 self.reset_state()
+            
+            # Initiate shutdown if transitioning to SHUTDOWN
+            if new_state == "SHUTDOWN":
+                self._initiate_graceful_shutdown()
 
             self._log_transition(old_state, new_state)
             return True, "State changed"
@@ -79,6 +87,32 @@ class ServiceState:
         with self.lock:
             self.is_shutting_down = True
             self.shutdown_time = time.time()
+
+    def _initiate_graceful_shutdown(self):
+        """Handle complete shutdown sequence"""
+        if self.is_shutting_down:
+            return
+            
+        self.is_shutting_down = True
+        self.shutdown_time = time.time()
+        
+        def shutdown_sequence():
+            try:
+                logger.info("Starting shutdown sequence")
+                time.sleep(1)
+                # Exit with special code 137 which Docker recognizes
+                os._exit(137)
+            except Exception as e:
+                logger.error(f"Shutdown sequence failed: {str(e)}", exc_info=True)
+                time.sleep(1)
+                os._exit(1)
+        
+        threading.Thread(target=shutdown_sequence, daemon=True).start()
+
+    def _handle_sigterm(self, signum, frame):
+        """Handle termination signals gracefully"""
+        logger.info(f"Received signal {signum}")
+        self._initiate_graceful_shutdown()
 
     def get_status(self):
         with self.lock:
@@ -137,18 +171,7 @@ def post_request_delay():
     """Function to sleep after request is complete"""
     time.sleep(2)
 
-def shutdown_containers():
-    """Shutdown all docker containers"""
-    try:
-        client = docker.from_env()
-        containers = client.containers.list()
-        for container in client.containers.list():
-            print(f"Stopping container: {container.name}")
-            container.stop(timeout=10)  # Give containers 10 seconds to stop gracefully
-        return True
-    except Exception as e:
-        print(f"Error shutting down containers: {e}")
-        return False
+
 
 @app.before_request
 def before_request():
@@ -163,7 +186,7 @@ def before_request():
 @app.before_request
 def check_state():
     # Exclude state management endpoints
-    if request.path in ['/state', '/run-log']:
+    if request.path in ['/state', '/run-log', '/stop']:
         return
         
     if not state.can_process_request():
@@ -238,75 +261,67 @@ def status():
         "details": service_status
     }), 200
 
+
+
+
+
+
 @app.route('/stop', methods=['POST'])
 def stop_services():
     if state.is_shutting_down:
-        return jsonify({
-            "message": "Shutdown already in progress",
-            "status": state.get_status()
-        }), 409
+        return jsonify({"message": "Shutdown in progress"}), 409
 
     state.start_shutdown()
     
-    def delayed_shutdown():
-        # Wait for active requests to complete (max 30 seconds)
-        shutdown_wait_start = time.time()
-        while state.active_requests > 0 and (time.time() - shutdown_wait_start) < 30:
-            time.sleep(1)
-        
-        # Shutdown containers
-        containers_stopped = shutdown_containers()
-        
-        # If we're not in debug/reloader mode, terminate the process
-        if not is_running_from_reloader():
-            os.kill(os.getpid(), signal.SIGTERM)
+    def shutdown():
+        time.sleep(0.1)
+        try:
+            # Stop service2 first
+            try:
+                requests.post('http://service2:8080/stop', timeout=1)
+            except:
+                pass
 
-    # Start shutdown process in separate thread
-    shutdown_thread = threading.Thread(target=delayed_shutdown)
-    shutdown_thread.daemon = True
-    shutdown_thread.start()
+            # Stop other service1 instances
+            other_services = [
+                'exercise1-service1-1:8199',
+                'exercise1-service1-2:8199', 
+                'exercise1-service1-3:8199'
+            ]
+            for service in other_services:
+                try:
+                    requests.post(f'http://{service}/stop', timeout=1)
+                except:
+                    pass
 
-    return jsonify({
-        "message": "Graceful shutdown initiated",
-        "status": state.get_status(),
-        "details": {
-            "active_requests": state.active_requests,
-            "shutdown_time": state.shutdown_time,
-            "note": "Service will complete active requests before shutting down"
-        }
-    }), 202
+            time.sleep(0.1)
+            os._exit(0)
+        except:
+            os._exit(1)
+
+    threading.Thread(target=shutdown).start()
+    return jsonify({"message": "Shutdown initiated"}), 202
+
 
 @app.route('/state', methods=['PUT', 'GET'])
 def handle_state():
-    try:
-        if request.method == 'GET':
-            logger.info("Handling GET /state request")
-            current_state = state.get_current_state()
-            logger.info(f"Returning current state: {current_state}")
-            return current_state, 200, {'Content-Type': 'text/plain'}
-            
-        elif request.method == 'PUT':
-            logger.info("Handling PUT /state request")
-            logger.debug(f"Request headers: {dict(request.headers)}")
-            
-            new_state = request.get_data().decode('utf-8').strip()
-            logger.info(f"Requested new state: {new_state}")
-            
-            auth = request.authorization
-            auth_provided = auth and auth.username == 'user' and auth.password == 'test@123'
-
-            success, message = state.change_state(new_state, auth_provided)
+    if request.method == 'GET':
+        return state.get_current_state(), 200, {'Content-Type': 'text/plain'}
         
-            if success:
-                if auth_provided:
-                    state.auth_success()
-                return state.get_current_state(), 200, {'Content-Type': 'text/plain'}
-            else:
-                return message, 401 if message == "Authentication required" else 400
-                
-    except Exception as e:
-        logger.error(f"Error in handle_state: {str(e)}", exc_info=True)
-        return str(e), 500
+    new_state = request.get_data().decode('utf-8').strip()
+    auth = request.authorization
+    auth_provided = auth and auth.username == 'user' and auth.password == 'test@123'
+
+    if new_state == "SHUTDOWN":
+        stop_services()
+        
+    success, message = state.change_state(new_state, auth_provided)
+    return state.get_current_state(), 200 if success else 400
+
+
+
+
+
 
 @app.route('/run-log', methods=['GET'])
 def get_run_log():
