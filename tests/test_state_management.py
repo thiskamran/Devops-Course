@@ -27,7 +27,7 @@ class TestStateManagement(unittest.TestCase):
     def make_request(self):
         return requests.get(f"{self.BASE_URL}/request", auth=self.auth)
     
-    def test_01_state_management_feature(self):
+    def test_state_management_feature(self):
         """Test the basic state management feature - GET/PUT /state"""
         try:
             # Test initial state
@@ -60,7 +60,7 @@ class TestStateManagement(unittest.TestCase):
             logger.error(f"Request failed: {str(e)}")
             raise
 
-    def test_02_request_handling_in_paused_state(self):
+    def test_request_handling_in_paused_state(self):
         """Test that requests are blocked in PAUSED state"""
         # Set RUNNING first
         self.put_state("RUNNING")
@@ -95,7 +95,7 @@ class TestStateManagement(unittest.TestCase):
         response = self.get_state()
         self.assertEqual(response.text.strip(), "PAUSED")
 
-    def test_03_run_log_format(self):
+    def test_run_log_format(self):
         """Test run-log endpoint returns correct format"""
         self.put_state("RUNNING")
         time.sleep(1)
@@ -112,7 +112,7 @@ class TestStateManagement(unittest.TestCase):
             self.assertRegex(line, 
                 r'\d{4}-\d{2}-\d{2}T\d{2}\.\d{2}:\d{2}\.\d{3}Z: [A-Z]+\->[A-Z]+')
 
-    def test_04_request_endpoint(self):
+    def test_request_endpoint(self):
         """Test GET /request endpoint returns system info as plain text"""
         self.put_state("RUNNING")
         
@@ -125,7 +125,7 @@ class TestStateManagement(unittest.TestCase):
         self.assertIn("IP", response.text)
         self.assertIn("Service2", response.text)
 
-    # def test_05_shutdown_state(self):
+    # def test_shutdown_state(self):
     #     """Test SHUTDOWN state behavior"""
     #     try:
     #     # First set to RUNNING
