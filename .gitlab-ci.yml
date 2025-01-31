@@ -16,7 +16,14 @@ test:
    - if (docker ps -aq) { docker stop $(docker ps -aq) }
    - docker-compose down --remove-orphans -v --rmi all
    - docker-compose up -d
-   - docker ps
+   - |
+      Write-Host "Waiting for services to start..."
+      Start-Sleep -Seconds 15
+      Write-Host "Checking container status:"
+      docker ps
+      Write-Host "Checking nginx logs:"
+      docker-compose logs nginx
+      Start-Sleep -Seconds 5
    - docker-compose exec -T service1 pytest ./../tests/test_state_management.py -v
  after_script:
    - if (docker ps -aq) { docker stop $(docker ps -aq) }
