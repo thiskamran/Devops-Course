@@ -16,20 +16,7 @@ test:
    - if (docker ps -aq) { docker stop $(docker ps -aq) }
    - docker-compose down --remove-orphans -v --rmi all
    - docker-compose up -d
-   - |
-      MAX_RETRIES=30
-      RETRY_INTERVAL=2
-      for i in $(seq 1 $MAX_RETRIES); do
-        if curl -s http://nginx:8197/state -u user:test@123 > /dev/null; then
-          echo "Services are ready"
-          break
-        fi
-        if [ $i -eq $MAX_RETRIES ]; then
-          echo "Services did not become ready in time"
-          exit 1
-        fi
-        echo "Waiting for services... Attempt $i/$MAX_RETRIES"
-        sleep $RETRY_INTERVAL
+   - docker ps
    - docker-compose exec -T service1 pytest ./../tests/test_state_management.py -v
  after_script:
    - if (docker ps -aq) { docker stop $(docker ps -aq) }
