@@ -3,17 +3,14 @@
 nginx &
 nginx_pid=$!
 
-# Retry mechanism for missing services
-max_retries=30  # Wait up to 30 seconds for services
-retry_interval=1 # Check every 1 second
+max_retries=30
+retry_interval=1
 
-# Wait for services to be available before continuing
-echo "Waiting for backend services to start..."
+# Wait for services to be available
+echo "Waiting for backend services..."
 for i in $(seq 1 $max_retries); do
-    if curl -s service1-1:8199 >/dev/null 2>&1 || \
-       curl -s service1-2:8199 >/dev/null 2>&1 || \
-       curl -s service1-3:8199 >/dev/null 2>&1 || \
-       curl -s service2:5000/system_info >/dev/null 2>&1; then
+    if curl -s service1:8199/request >/dev/null 2>&1 || \
+       curl -s service2:8080 >/dev/null 2>&1; then
         echo "Backend services are up!"
         break
     fi
@@ -23,14 +20,15 @@ done
 
 # Monitor backend services
 while true; do
-    if ! curl -s service1-1:8199 >/dev/null 2>&1 && \
-       ! curl -s service1-2:8199 >/dev/null 2>&1 && \
-       ! curl -s service1-3:8199 >/dev/null 2>&1 && \
-       ! curl -s service2:5000/system_info >/dev/null 2>&1; then
-        echo "All services are down. Shutting down Nginx..."
+    service1_status=$(curl -s service1:8199/request 2>&1)
+    service2_status=$(curl -s service2:8080 2>&1)
+
+    if [ $? -ne 0 ] || [ -z "$service1_status" ] && [ -z "$service2_status" ]; then
+        echo "All services are down. Stopping Nginx..."
         kill $nginx_pid
-        wait $nginx_pid  # Ensure Nginx exits properly
-        exit 0  # Graceful shutdown
+        wait $nginx_pid  # Wait for nginx to exit cleanly
+        echo "Nginx stopped"
+        exit 0
     fi
     sleep 5
 done
