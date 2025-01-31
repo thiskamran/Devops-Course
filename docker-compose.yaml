@@ -36,7 +36,7 @@ services:
       - app-network
 
   nginx:
-    image: nginx:alpine
+    image: nginx:latest
     ports:
       - "8198:80"
       - "8197:8197"   # Expose the port 8197
@@ -44,8 +44,8 @@ services:
     - ./nginx.conf:/etc/nginx/nginx.conf
     - ./.htpasswd:/etc/nginx/.htpasswd
     - ./public:/etc/nginx/html     # Mount the HTML directory
-    - ./start.sh:/start.sh
-    command: ["sh", "/start.sh"]
+    # - ./start.sh:/start.sh
+    # command: ["sh", "/start.sh"]
     networks: 
       - app-network
 
