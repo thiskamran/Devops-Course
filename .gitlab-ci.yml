@@ -15,8 +15,9 @@ test:
  script:
    - if (docker ps -aq) { docker stop $(docker ps -aq) }
    - docker-compose down --remove-orphans -v --rmi all
-   - docker-compose up -d
-   - |
+   - chmod +x start.sh  # Make the script executable
+    - docker-compose up -d
+    - |
       Write-Host "Waiting for services to start..."
       Start-Sleep -Seconds 15
       Write-Host "Checking container status:"

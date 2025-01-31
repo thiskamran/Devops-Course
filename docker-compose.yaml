@@ -36,7 +36,7 @@ services:
       - app-network
 
   nginx:
-    image: nginx:latest
+    image: nginx:alpine
     ports:
       - "8198:80"
       - "8197:8197"   # Expose the port 8197
