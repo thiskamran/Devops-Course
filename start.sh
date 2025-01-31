@@ -11,7 +11,8 @@ retry_interval=1
 
 # Wait for services to be available
 echo "Waiting for backend services..."
-for i in $(seq 1 $max_retries); do
+i=1
+while [ $i -le $max_retries ]; do
     if curl -s service1:8199/request >/dev/null 2>&1 || \
        curl -s service2:8080 >/dev/null 2>&1; then
         echo "Backend services are up!"
@@ -19,6 +20,7 @@ for i in $(seq 1 $max_retries); do
     fi
     echo "Retry $i/$max_retries: Waiting for services..."
     sleep $retry_interval
+    i=$((i + 1))
 done
 
 # Monitor backend services
@@ -38,9 +40,7 @@ while true; do
         kill $nginx_pid 2>/dev/null || true
         nginx -s quit 2>/dev/null || true
         
-        # Wait briefly for nginx to stop
         sleep 2
-        
         echo "Nginx stopped"
         exit 0
     fi
