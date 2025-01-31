@@ -13,6 +13,29 @@ class TestStateManagement(unittest.TestCase):
     BASE_URL = "http://nginx:8197/"
     auth = ("user", "test@123")
 
+    # @classmethod
+    # def setUpClass(cls):
+    #     """Setup that runs once before all tests"""
+    #     logger.info("Starting test suite...")
+    #     # Add retry logic for service availability
+    #     max_retries = 30
+    #     retry_interval = 1
+    #     for i in range(max_retries):
+    #         try:
+    #             response = requests.get(f"{cls.BASE_URL}/state", 
+    #                                  auth=cls.auth, 
+    #                                  timeout=5)
+    #             if response.status_code in [200, 401]:
+    #                 logger.info("Service is available")
+    #                 break
+    #         except requests.RequestException:
+    #             if i < max_retries - 1:
+    #                 logger.info(f"Waiting for service... ({i+1}/{max_retries})")
+    #                 time.sleep(retry_interval)
+    #             else:
+    #                 logger.error("Service not available after maximum retries")
+    #                 raise
+
     def put_state(self, state):
         return requests.put(
             f"{self.BASE_URL}/state",

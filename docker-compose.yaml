@@ -16,8 +16,14 @@ services:
       replicas: 3  # Create 3 instances of service1
     stop_grace_period: 10s  # Give containers time to shutdown gracefully
     stop_signal: SIGTERM    # Use SIGTERM for shutdown
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8199/request"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
     networks:
-      - app-network
+      - app-network 
 
   service2:
     image: service2-image
