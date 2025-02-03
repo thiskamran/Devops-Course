@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Login - Service Gateway</title>
+        <style>
+            * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            }
+    
+            body {
+                background-color: #f0f2f5;
+                min-height: 100vh;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+    
+            .container {
+                width: 100%;
+                padding: 1.5rem;
+                max-width: 400px;
+            }
+    
+            .login-card {
+                background-color: white;
+                border-radius: 12px;
+                box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+                padding: 2rem;
+            }
+    
+            .header {
+                text-align: center;
+                margin-bottom: 2rem;
+            }
+    
+            h1 {
+                color: #1a1a1a;
+                font-size: 1.75rem;
+                margin-bottom: 0.5rem;
+            }
+    
+            .subtitle {
+                color: #6b7280;
+                font-size: 0.875rem;
+            }
+    
+            .login-form {
+                display: flex;
+                flex-direction: column;
+                gap: 1.5rem;
+            }
+    
+            .form-group {
+                display: flex;
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+    
+            label {
+                color: #374151;
+                font-size: 0.875rem;
+                font-weight: 500;
+            }
+    
+            input {
+                width: 100%;
+                padding: 0.75rem;
+                border: 1px solid #d1d5db;
+                border-radius: 8px;
+                font-size: 1rem;
+                outline: none;
+                transition: all 0.2s ease;
+            }
+    
+            input:focus {
+                border-color: #2563eb;
+                box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
+            }
+    
+            input::placeholder {
+                color: #9ca3af;
+            }
+    
+            .password-input {
+                position: relative;
+                display: flex;
+                align-items: center;
+            }
+    
+            .toggle-password {
+                position: absolute;
+                right: 0.75rem;
+                background: none;
+                border: none;
+                padding: 0.25rem;
+                cursor: pointer;
+                color: #6b7280;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+    
+            .toggle-password:hover {
+                color: #374151;
+            }
+    
+            .login-button {
+                background-color: #2563eb;
+                color: white;
+                padding: 0.75rem 1.5rem;
+                border: none;
+                border-radius: 8px;
+                font-weight: 600;
+                cursor: pointer;
+                transition: all 0.2s ease;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 0.5rem;
+                margin-top: 0.5rem;
+            }
+    
+            .login-button:hover {
+                background-color: #1d4ed8;
+                transform: translateY(-1px);
+            }
+    
+            .login-button:active {
+                transform: translateY(0);
+            }
+    
+            .login-button:disabled {
+                background-color: #93c5fd;
+                cursor: not-allowed;
+                transform: none;
+            }
+    
+            .error-message {
+                display: none;
+                background-color: #fee2e2;
+                border: 1px solid #fecaca;
+                color: #dc2626;
+                padding: 0.75rem;
+                border-radius: 8px;
+                font-size: 0.875rem;
+                margin-bottom: 1.5rem;
+            }
+        </style>
+    </head>
+<body>
+    <div class="container">
+        <div class="login-card">
+            <div class="header">
+                <h1>Service Gateway</h1>
+                <p class="subtitle">Please log in to continue</p>
+            </div>
+            
+            <div id="error" class="error-message"></div>
+            
+            <form id="loginForm" class="login-form">
+                <div class="form-group">
+                    <label for="username">Username</label>
+                    <input 
+                        type="text" 
+                        id="username" 
+                        required 
+                        autocomplete="username"
+                        placeholder="Enter your username"
+                    >
+                </div>
+                
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <div class="password-input">
+                        <input 
+                            type="password" 
+                            id="password" 
+                            required 
+                            autocomplete="current-password"
+                            placeholder="Enter your password"
+                        >
+                        <button type="button" id="togglePassword" class="toggle-password">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                <circle cx="12" cy="12" r="3"></circle>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+                
+                <button type="submit" class="login-button">
+                    <span>Log In</span>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path>
+                        <polyline points="10 17 15 12 10 7"></polyline>
+                        <line x1="15" y1="12" x2="3" y2="12"></line>
+                    </svg>
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Toggle password visibility
+        document.getElementById('togglePassword').addEventListener('click', function() {
+            const passwordInput = document.getElementById('password');
+            const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+            passwordInput.setAttribute('type', type);
+            
+            // Update icon
+            const svg = this.querySelector('svg');
+            if (type === 'text') {
+                svg.innerHTML = `
+                    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                    <line x1="1" y1="1" x2="23" y2="23"></line>
+                `;
+            } else {
+                svg.innerHTML = `
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                    <circle cx="12" cy="12" r="3"></circle>
+                `;
+            }
+        });
+
+        async function login(username, password) {
+              // Check for specific credentials
+        if (username !== 'user' || password !== 'test@123') {
+            document.getElementById('error').textContent = 'Invalid username or password';
+            document.getElementById('error').style.display = 'block';
+            return;
+        }
+            const credentials = btoa(`${username}:${password}`);
+            const loginButton = document.querySelector('.login-button');
+            
+            try {
+                loginButton.disabled = true;
+                loginButton.innerHTML = '<span>Logging in...</span>';
+                
+                // First verify credentials
+                const authResponse = await fetch('/state', {
+                    headers: { 'Authorization': `Basic ${credentials}` }
+                });
+
+                if (authResponse.ok) {
+                    // Set credentials in session
+                    sessionStorage.setItem('credentials', credentials);
+                    
+                    // Change state to RUNNING
+                    const stateResponse = await fetch('/state', {
+                        method: 'PUT',
+                        headers: {
+                            'Authorization': `Basic ${credentials}`,
+                            'Content-Type': 'text/plain'
+                        },
+                        body: 'RUNNING'
+                    });
+
+                    if (stateResponse.ok) {
+                        loginButton.innerHTML = '<span>Success!</span>';
+                        window.location.href = '/index.html';
+                    }
+                } else {
+                    throw new Error('Invalid username or password');
+                }
+            } catch (error) {
+                const errorDiv = document.getElementById('error');
+                errorDiv.textContent = error.message;
+                errorDiv.style.display = 'block';
+                
+                loginButton.disabled = false;
+                loginButton.innerHTML = `
+                    <span>Log In</span>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path>
+                        <polyline points="10 17 15 12 10 7"></polyline>
+                        <line x1="15" y1="12" x2="3" y2="12"></line>
+                    </svg>
+                `;
+            }
+        }
+
+        document.getElementById('loginForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            login(username, password);
+        });
+    </script>
+</body>
+</html>

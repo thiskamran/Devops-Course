@@ -1,6 +1,4 @@
-# service2/Dockerfile
 
-# Use an official Node.js runtime as a parent image
 FROM node:16-alpine
 
 # Set the working directory in the container

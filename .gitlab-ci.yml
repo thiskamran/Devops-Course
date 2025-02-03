@@ -1,0 +1,32 @@
+stages:
+  - build
+  - test
+  - deploy
+
+build:
+  stage: build
+  script:
+    - docker-compose build --no-cache
+  tags:
+    - shell  # Changed from 'windows' to 'shell' to match runner's tag
+
+test:
+ stage: test
+ script:
+   - if (docker ps -aq) { docker stop $(docker ps -aq) }
+   - docker-compose down --remove-orphans -v --rmi all
+   - docker-compose up -d
+   - docker ps
+   - docker-compose exec -T service1 pytest ./../tests/test_state_management.py -v
+ after_script:
+   - if (docker ps -aq) { docker stop $(docker ps -aq) }
+   - docker-compose down --remove-orphans -v --rmi all
+ tags:
+   - shell
+
+deploy:
+  stage: deploy
+  script:
+    - docker-compose up -d
+  tags:
+    - shell   

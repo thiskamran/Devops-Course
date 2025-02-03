@@ -60,6 +60,25 @@ app.get('/', async (req, res) => {
     }
 });
 
+app.post('/stop', (req, res) => {
+    console.log('Received stop request for service2');
+    res.json({ message: 'Stopping service2...' });
+    // Force kill the process
+    process.kill(process.pid, 'SIGTERM');
+});
+
+// Add SIGTERM handler
+process.on('SIGTERM', () => {
+    console.log('SIGTERM received, shutting down...');
+    process.exit(0);
+});
+
+// Add SIGINT handler as well for completeness
+process.on('SIGINT', () => {
+    console.log('SIGINT received, shutting down...');
+    process.exit(0);
+});
+
 app.listen(port, () => {
     console.log(`Service2 running on port ${port}`);
 });

@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Service Gateway</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: #f0f2f5;
+            padding: 2rem;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background-color: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            padding: 2rem;
+        }
+
+        h1 {
+            color: #1a1a1a;
+            margin-bottom: 2rem;
+            font-size: 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .status-indicator {
+            font-size: 1rem;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            background-color: #e5e7eb;
+        }
+
+        .controls {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        button {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: white;
+            min-width: 140px;
+            justify-content: center;
+        }
+
+        button:hover {
+            transform: translateY(-1px);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .btn-request { background-color: #2563eb; }
+        .btn-request:hover { background-color: #1d4ed8; }
+
+        .btn-stop { background-color: #dc2626; }
+        .btn-stop:hover { background-color: #b91c1c; }
+
+        .btn-change { background-color: #059669; }
+        .btn-change:hover { background-color: #047857; }
+
+        .btn-check { background-color: #7c3aed; }
+        .btn-check:hover { background-color: #6d28d9; }
+
+        .btn-logs { background-color: #4b5563; }
+        .btn-logs:hover { background-color: #374151; }
+
+        select {
+            padding: 0.75rem;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            font-size: 1rem;
+            outline: none;
+            min-width: 150px;
+            background-color: white;
+        }
+
+        select:focus {
+            border-color: #2563eb;
+            box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
+        }
+
+        .display-area {
+            margin-top: 2rem;
+            display: grid;
+            gap: 1.5rem;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        }
+
+        .display-panel {
+            background-color: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 1rem;
+        }
+
+        .panel-title {
+            font-size: 0.875rem;
+            color: #4b5563;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .panel-content {
+            min-height: 100px;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 0.875rem;
+            white-space: pre-wrap;
+            word-break: break-word;
+            color: #1f2937;
+        }
+
+        #logs-container {
+            grid-column: 1 / -1;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .error-message {
+            color: #dc2626;
+            padding: 0.5rem;
+            background-color: #fee2e2;
+            border-radius: 4px;
+            margin-top: 0.5rem;
+        }
+
+        .success-message {
+            color: #059669;
+            padding: 0.5rem;
+            background-color: #d1fae5;
+            border-radius: 4px;
+            margin-top: 0.5rem;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            body {
+                padding: 1rem;
+            }
+
+            .container {
+                padding: 1rem;
+            }
+
+            .button-group {
+                flex-direction: column;
+            }
+
+            button {
+                width: 100%;
+            }
+
+            .display-area {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>
+            Service Gateway
+            <span id="current-state" class="status-indicator">Checking state...</span>
+        </h1>
+        
+        
+        <div class="controls">
+            <!-- <div class="button-group">
+                <button onclick="sendRequest()" class="btn-request">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                    </svg>
+                    REQUEST
+                </button>
+                <button onclick="stopServices()" class="btn-stop">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                    </svg>
+                    STOP
+                </button>
+            </div> -->
+
+            <div class="button-group" class = "constrols">
+                <select id="state-select">
+                    <option value="INIT">INIT</option>
+                    <option value="RUNNING">RUNNING</option>
+                    <option value="PAUSED">PAUSED</option>
+                    <option value="SHUTDOWN">SHUTDOWN</option>
+                </select>
+                <button onclick="changeState()" class="btn-change">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M3 2v6h6"></path>
+                        <path d="M21 12A9 9 0 0 0 6 5.3L3 8"></path>
+                        <path d="M21 22v-6h-6"></path>
+                        <path d="M3 12a9 9 0 0 0 15 6.7l3-2.7"></path>
+                    </svg>
+                    CHANGE STATE
+                </button>
+                <button onclick="checkCurrentState()" class="btn-check">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+                    </svg>
+                    CHECK STATE
+                </button>
+                <button onclick="getRunLogs()" class="btn-logs">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                        <polyline points="14 2 14 8 20 8"></polyline>
+                        <line x1="16" y1="13" x2="8" y2="13"></line>
+                        <line x1="16" y1="17" x2="8" y2="17"></line>
+                        <polyline points="10 9 9 9 8 9"></polyline>
+                    </svg>
+                    GET LOGS
+                </button>
+                <button onclick="sendRequest()" class="btn-request">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                    </svg>
+                    REQUEST
+                </button>
+            </div>
+        </div>
+
+        <div class="display-area">
+            <div class="display-panel">
+                <div class="panel-title">
+                    Response
+                    <button onclick="clearPanel('response')" style="background: none; padding: 2px; min-width: auto;">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4b5563" stroke-width="2">
+                            <line x1="18" y1="6" x2="6" y2="18"></line>
+                            <line x1="6" y1="6" x2="18" y2="18"></line>
+                        </svg>
+                    </button>
+                </div>
+                <div id="response" class="panel-content"></div>
+            </div>
+
+            <div id="logs-container" class="display-panel">
+                <div class="panel-title">
+                    Run Logs
+                    <button onclick="clearPanel('logs-container')" style="background: none; padding: 2px; min-width: auto;">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4b5563" stroke-width="2">
+                            <line x1="18" y1="6" x2="6" y2="18"></line>
+                            <line x1="6" y1="6" x2="18" y2="18"></line>
+                        </svg>
+                    </button>
+                </div>
+                <div class="panel-content"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Check auth on load
+        if (!sessionStorage.getItem('credentials')) {
+            window.location.href = '/login.html';
+        }
+
+        // Set initial state on page load
+        window.onload = async function() {
+            await checkCurrentState();
+        };
+
+        function getAuthHeader() {
+            return { 'Authorization': `Basic ${sessionStorage.getItem('credentials')}` };
+        }
+
+        function updateStateIndicator(state) {
+            const indicator = document.getElementById('current-state');
+            indicator.textContent = state;
+            
+            // Update indicator color based on state
+            const colors = {
+                'INIT': '#9ca3af',
+                'RUNNING': '#059669',
+                'PAUSED': '#d97706',
+                'SHUTDOWN': '#dc2626'
+            };
+            indicator.style.backgroundColor = colors[state] || '#e5e7eb';
+            indicator.style.color = state === 'INIT' ? '#1f2937' : 'white';
+        }
+
+        function clearPanel(panelId) {
+            const panel = document.getElementById(panelId);
+            if (panel) {
+                panel.innerHTML = '';
+            }
+        }
+
+        async function stopServices() {
+            try {
+                await fetch('/api/stop', { method: 'POST' });
+                showMessage('response', "Services are shutting down...", 'success');
+            } catch (error) {
+                showMessage('response', `Error: ${error.message}`, 'error');
+            }
+        }
+
+        async function changeState() {
+            const state = document.getElementById('state-select').value;
+            try {
+                const response = await fetch('/state', {
+                    method: 'PUT',
+                    headers: {
+                        ...getAuthHeader(),
+                        'Content-Type': 'text/plain'
+                    },
+                    body: state
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Failed to change state: ${response.statusText}`);
+                }
+
+                const newState = await response.text();
+                showMessage('response', `State changed to: ${newState}`, 'success');
+                document.getElementById('state-select').value = newState;
+                updateStateIndicator(newState);
+
+                // Clear the logs container
+                document.getElementById('logs-container').querySelector('.panel-content').innerText = '';
+
+                if (state === 'INIT') {
+                    sessionStorage.removeItem('credentials');
+                    window.location.href = '/login.html';
+                }
+            } catch (error) {
+                showMessage('response', `Error: ${error.message}`, 'error');
+            }
+        }
+
+        async function sendRequest() {
+            try {
+                const response = await fetch('/request', {
+                    headers: getAuthHeader()
+                });
+                const data = await response.text();
+                showMessage('response', data, 'success');
+            } catch (error) {
+                showMessage('response', `Error: ${error.message}`, 'error');
+            }
+        }
+
+        async function checkCurrentState() {
+            try {
+                const response = await fetch('/state');
+                if (response.ok) {
+                    const currentState = await response.text();
+                    showMessage('response', `Current state: ${currentState}`, 'success');
+                    document.getElementById('state-select').value = currentState;
+                    updateStateIndicator(currentState);
+                }
+            } catch (error) {
+                showMessage('response', `Error: ${error.message}`, 'error');
+            }
+        }
+
+        async function getRunLogs() {
+            try {
+                const response = await fetch('/run-log');
+                if (response.ok) {
+                    const logs = await response.text();
+                    const logsContainer = document.getElementById('logs-container').querySelector('.panel-content');
+                    logsContainer.textContent = logs;
+                }
+            } catch (error) {
+                const logsContainer = document.getElementById('logs-container').querySelector('.panel-content');
+                logsContainer.innerHTML = `<div class="error-message">Error: ${error.message}</div>`;
+            }
+        }
+
+        function showMessage(containerId, message, type = 'success') {
+            const container = document.getElementById(containerId);
+            container.innerHTML = `<div class="${type}-message">${message}</div>`;
+        }
+    </script>
+</body>
+</html>

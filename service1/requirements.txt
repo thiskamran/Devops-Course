@@ -1,3 +1,6 @@
 flask
 requests
 psutil
+docker
+pytest
+pytest-cov  # for coverage reporting
